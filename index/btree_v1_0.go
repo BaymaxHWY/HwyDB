@@ -19,13 +19,13 @@ package index
 //	btCount int // BTnode节点的个数
 //}
 //
-//func (B *BTree) Search(inRecord Record) interface{} {
+//func (B *BTree) Find(inRecord Key) interface{} {
 //	node, err := B.root.searchNodeForValue(inRecord)
 //	if err != nil {
 //		log.Printf("%v, %s", inRecord, err)
 //		return nil
 //	}
-//	return node.record.GetValue()
+//	return node.key.GetValue()
 //}
 //
 //type BTnode struct {
@@ -37,7 +37,7 @@ package index
 //	count        int // 当前节点包含小node的个数
 //}
 //
-//func (t *BTnode) Insert(inRecord Record) error {
+//func (t *BTnode) Insert(inRecord Key) error {
 //	if t == nil { // 说明是空树，创建leaf node
 //		t = NewBTnode(M, true, true) // 这里应该从配置文件里读取
 //		t.nodes = make([]*Snode, 0, t.degree-1)
@@ -106,7 +106,7 @@ package index
 //		t.parent = parent
 //		tr.parent = parent
 //	}
-//	parent.insertNodes(upnode.record, t, tr)
+//	parent.insertNodes(upnode.key, t, tr)
 //}
 //
 //func (t *BTnode) mergeNode() {
@@ -116,16 +116,16 @@ package index
 //// 这里需要重新写查找
 //// 两种查找，一种从根节点查找，一种从最小关键字开始查找
 //// 向该BTnode节点的nodes中插入，保持key的顺序
-//func (t *BTnode) insertNodes(inRecord Record, left, right *BTnode) {
+//func (t *BTnode) insertNodes(inRecord Key, left, right *BTnode) {
 //	// 非空树
 //	for i, node := range t.nodes { // 遍历该节点的所以key
-//		if node.record.Compare(inRecord.Key()) == 0 { // 如果该key已经存在则更新其data，结束插入
-//			node.record.SetValue(inRecord.GetValue())
+//		if node.key.Compare(inRecord.Key()) == 0 { // 如果该key已经存在则更新其data，结束插入
+//			node.key.SetValue(inRecord.GetValue())
 //			node.left = left
 //			node.right = right
 //			return
 //		}
-//		if node.record.Compare(inRecord.Key()) < 0 { // 找到第一个 key 比 key 大的节点
+//		if node.key.Compare(inRecord.Key()) < 0 { // 找到第一个 key 比 key 大的节点
 //			newNode := NewSnode(inRecord, left, right)
 //			tmpNodes := append([]*Snode{}, t.nodes[i:]...)
 //			t.nodes = append(t.nodes[:i], newNode)
@@ -151,14 +151,14 @@ package index
 //}
 //
 //// 精确查找到值，找不到就返回error
-//func (t *BTnode) searchNodeForValue(inRecord Record) (node *Snode, err error) {
+//func (t *BTnode) searchNodeForValue(inRecord Key) (node *Snode, err error) {
 //	if t == nil {
 //		err = errors.New("this key is not exist")
 //		return nil, err
 //	}
 //	// 在本BTnode节点内进行node查找
 //	node = t.searchInNode(inRecord)
-//	res := node.record.Compare(inRecord.Key())
+//	res := node.key.Compare(inRecord.Key())
 //	if  res > 0 { // inRecord大
 //		node, err = node.right.searchNodeForValue(inRecord)
 //	}else if res < 0 { // inRecord小
@@ -170,22 +170,22 @@ package index
 //}
 //
 //// 精确查找到节点
-//func (t *BTnode) searchNodeForBT(inRecord Record) (*BTnode) {
+//func (t *BTnode) searchNodeForBT(inRecord Key) (*BTnode) {
 //
 //}
 //
 //// 在本节点中的nodes中查找记录
-//func (t *BTnode) searchInNode(inRecord Record) (*Snode) {
+//func (t *BTnode) searchInNode(inRecord Key) (*Snode) {
 //
 //}
 //
 //type Snode struct {
-//	record Record
+//	key Key
 //	left, right *BTnode // internal小节点使用
 //}
 //
 //// 自定义接口
-//type Record interface {
+//type Key interface {
 //	// 如果 input key > this key return 一个大于0的数
 //	// 如果 input key == this key return 0
 //	// 如果 input key < this key return 一个小于0的数
@@ -216,9 +216,9 @@ package index
 //	}
 //}
 //
-//func NewSnode(record Record, left, right *BTnode) *Snode {
+//func NewSnode(key Key, left, right *BTnode) *Snode {
 //	return &Snode{
-//		record:record,
+//		key:key,
 //		left:  left,
 //		right: right,
 //	}
