@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	NORMAL int = iota // normal
-	SPLIT // split 分裂
-	MERGE // merge 合并
+	Normal int = iota // normal
+	Split             // split 分裂
+	Merge             // merge 合并
 )
 
 type BT interface {
@@ -94,25 +94,25 @@ func (bt *Btree) insertRecursive(key Key, parent, cur *BNode, value interface{})
 	if cur.isLeaf {
 		isUpdate, err := cur.insertElement(idx, newSNode(key, nil, value))
 		if err != nil {
-			return NORMAL, err
+			return Normal, err
 		}
 		if isUpdate {
 			bt.updateIndex(cur.nodes[idx].key, key, cur.degree)
 		}
 		state := cur.checkBNode(cur == bt.root)
-		if state == SPLIT {
+		if state == Split {
 			return cur.splitBNode(bt, parent), nil
 		}
-		return NORMAL, nil
+		return Normal, nil
 	}
 	state, err := bt.insertRecursive(key, cur, cur.nodes[idx].childPtr, value)
 	if err != nil {
-		return NORMAL, err
+		return Normal, err
 	}
-	if state == SPLIT {
+	if state == Split {
 		return cur.splitBNode(bt, parent), nil
 	}
-	return NORMAL, nil
+	return Normal, nil
 }
 // 删除关键字
 func (bt *Btree) delete(key Key) {
@@ -130,26 +130,26 @@ func (bt *Btree) deleteRecursive(key Key, parent, cur *BNode) (int, error) {
 		}
 		isUpdate, err := cur.deleteElement(idx)
 		if err != nil {
-			return NORMAL, err
+			return Normal, err
 		}
 		if isUpdate {
 			// 更新索引节点，把久的索引（本次删除的）换成新的（删除后剩下最大关键字）
 			bt.updateIndex(key, cur.nodes[len(cur.nodes)-1].key, cur.degree)
 		}
 		state := cur.checkBNode(cur == bt.root)
-		if state == MERGE {
+		if state == Merge {
 			return cur.mergeBNode(bt ,parent), nil
 		}
-		return NORMAL, nil
+		return Normal, nil
 	}
 	state, err := bt.deleteRecursive(key, cur, cur.nodes[idx].childPtr)
 	if err != nil {
-		return NORMAL, err
+		return Normal, err
 	}
-	if state == MERGE {
+	if state == Merge {
 		return cur.mergeBNode(bt, parent), nil
 	}
-	return NORMAL, nil
+	return Normal, nil
 }
 // 更新操作
 func (bt *Btree) update(key Key, value interface{}) {
@@ -320,15 +320,15 @@ func (bn *BNode) checkBNode(isRoot bool) int {
 		lowerLimit = 1
 	}
 	if count > upLimit { // 超出限制，分裂
-		return SPLIT
+		return Split
 	}
 	if count < lowerLimit { // 太少了，合并
-		return MERGE
+		return Merge
 	}
-	return NORMAL
+	return Normal
 }
 // 分裂该节点（分裂之前要更新好索引节点的索引）
-// 如果parent节点也需要分裂就返回 SPLIT 标记
+// 如果parent节点也需要分裂就返回 Split 标记
 func (bn *BNode) splitBNode(bt *Btree, parent *BNode) (int) {
 	// 1. 先检查兄弟节点是否有空位置放
 	// 2. 没有就分裂
@@ -343,7 +343,7 @@ func (bn *BNode) splitBNode(bt *Btree, parent *BNode) (int) {
 			bn.deleteElement(0)
 			bt.updateIndex(brother.nodes[brohterIdx].key, brother.nodes[brohterIdx+1].key, brother.degree)
 		}
-		return NORMAL
+		return Normal
 	}
 	m := bn.m + 1
 	leftNodes := make([]*SNode, 0, m>>1)
@@ -375,12 +375,12 @@ func (bn *BNode) splitBNode(bt *Btree, parent *BNode) (int) {
 		parent.insertElement(idx, newSnL)
 		return parent.checkBNode(parent == bt.root)
 	}
-	return NORMAL
+	return Normal
 }
 // 合并节点（删除操作时）和兄弟节点合并
 func (bn *BNode) mergeBNode(bt *Btree, parent *BNode) (int) {
 	if parent == nil { // 可能和checkBNode有点重复
-		return NORMAL // 单节点时删除不用检查
+		return Normal // 单节点时删除不用检查
 	}
 	// 1.需要判断兄弟节点是否有多余关键字可以分配
 	// 2.如果没有才进行合并
@@ -395,7 +395,7 @@ func (bn *BNode) mergeBNode(bt *Btree, parent *BNode) (int) {
 			bn.nodes = insertNodes(bn.nodes, 0, tmp)
 			bt.updateIndex(tmp.key, brother.nodes[len(bn.nodes)-1].key, brother.degree)
 		}
-		return NORMAL
+		return Normal
 	}
 	// 合并 brother 和 bn 节点 返回是否需要继续合并(需要注意更新索引节点)
 	var left, right *BNode
