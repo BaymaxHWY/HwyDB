@@ -2,6 +2,7 @@ package sql
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -18,18 +19,18 @@ type tokenType int
 type token struct {
 	typ tokenType // 记号
 	lit string    // 对应值
-	pos position // 当sql命令有多行时使用（暂时没用）
+	pos position  // 当sql命令有多行时使用（暂时没用）
 }
 
 func (t token) String() string {
 	return fmt.Sprintf("{%s : %q}\t", tokens[t.typ], t.lit)
 }
-
+// TODO:把字面量改成实际的类型：string、int、float
 const (
 	KeyWord    tokenType = iota // 关键字
 	Identifier                  // 标识符
 	Literal                     //字面量(字符串)
-	Num // 数字
+	Num                         // 数字
 	Symbol                      // 特殊符号
 	Paren                       //括号( or )
 	Semicolon                   //分号;
@@ -42,7 +43,7 @@ var tokens = map[tokenType]string{
 	KeyWord:    "关键字",
 	Identifier: "标识符",
 	Literal:    "字面量",
-	Num: "数字",
+	Num:        "数字",
 	Symbol:     "特殊符号",
 	Paren:      "括号",
 	Semicolon:  "分号",
@@ -50,17 +51,17 @@ var tokens = map[tokenType]string{
 }
 
 // 用于状态之间的转换
-type stateFuc func (l *lexer) stateFuc
+type stateFuc func(l *lexer) stateFuc
 
 type lexer struct {
-	curToken *token    // 记录上一个token
-	str      string   // 输入字符串
-	start int // 字符串的起始位置
-	pos int // 将要读到的位置
-	width    int // 已经读取字符的size
-	state stateFuc // 状态
-	tokens   []*token // 解析到的token
-	keyword map[string]bool // keyword
+	curToken *token          // 记录上一个token
+	str      string          // 输入字符串
+	start    int             // 字符串的起始位置
+	pos      int             // 将要读到的位置
+	width    int             // 已经读取字符的size
+	state    stateFuc        // 状态
+	tokens   []*token        // 解析到的token
+	keyword  map[string]bool // keyword
 }
 
 // 启动
@@ -92,7 +93,7 @@ func (l *lexer) backup() {
 	l.pos -= l.width
 }
 
-// 查看下一个字符
+// 查看下一个字符(注意peek之后width会改变，只能继续向后读不能再backup，可能会错误)
 func (l *lexer) peek() rune {
 	r := l.next()
 	l.backup()
@@ -101,9 +102,13 @@ func (l *lexer) peek() rune {
 
 // 写入tokens
 func (l *lexer) token(typ tokenType) {
+	lit := l.str[l.start:l.pos]
+	if typ == KeyWord {
+		lit = strings.ToLower(lit)
+	}
 	t := &token{
 		typ: typ,
-		lit: l.str[l.start : l.pos],
+		lit: lit,
 		pos: position{},
 	}
 	l.tokens = append(l.tokens, t)
@@ -120,14 +125,15 @@ func (l *lexer) addKeyWord(keywords ...string) {
 
 // 入口函数
 func NewLex(str string) *lexer {
-	l :=  &lexer{
-		str:str,
-		keyword:make(map[string]bool),
+	l := &lexer{
+		str:     str,
+		keyword: make(map[string]bool),
 	}
-	l.addKeyWord("insert", "update", "delete", "find", "value", "into", "from", "where", "set")
+	l.addKeyWord("insert", "update", "delete", "find", "set")
 	l.run()
-	return l;
+	return l
 }
+
 // 是否为英文字母
 func isLetter(r rune) bool {
 	r = unicode.ToLower(r)
@@ -136,15 +142,16 @@ func isLetter(r rune) bool {
 	}
 	return false
 }
+
 // 是否为变量
 func isVariable(r rune) bool {
- 	if isLetter(r) || r == '_' {
- 		return true
+	if isLetter(r) || r == '_' {
+		return true
 	}
 	return false
 }
 
-// 是否为字面量（判断是否为引号）
+// 是否为字符串（判断是否为引号）
 func isLiteral(r rune) bool {
 	if r == 34 || r == 39 {
 		return true
@@ -155,17 +162,17 @@ func isLiteral(r rune) bool {
 
 // 是否为特殊字符
 func isSymbol(r rune) bool {
-	symbols := map[string]int {
-		"," : 1,
-		"+" : 1,
-		"-" : 1,
-		"*" : 1,
-		"/" : 1,
-		"%" : 1,
-		"=" : 1,
-		"!" : 1,
-		">" : 1,
-		"<" : 1,
+	symbols := map[string]int{
+		",": 1,
+		"+": 1,
+		"-": 1,
+		"*": 1,
+		"/": 1,
+		"%": 1,
+		"=": 1,
+		"!": 1,
+		">": 1,
+		"<": 1,
 	}
 	_, ok := symbols[string(r)]
 	return ok
@@ -174,9 +181,9 @@ func isSymbol(r rune) bool {
 //-------------- state func ------------------------
 func lexBegin(l *lexer) stateFuc {
 	switch r := l.next(); {
-	case unicode.IsDigit(r) || r == '.' || r == '-':
+	case unicode.IsDigit(r) || r == '.' || r == '-': // 判断是否是数字
 		if r == '-' && l.curToken.typ == Num {
-			goto L //go to minus
+			goto L
 		}
 		l.backup()
 		lexNum(l)
@@ -208,13 +215,13 @@ func lexBegin(l *lexer) stateFuc {
 
 func lexVariable(l *lexer) stateFuc {
 	// 这里需要判断属于keyword还是标识符
-	// 1.先读取后续的字符，直到读到非字母、数字、下划线
-	for r := l.peek(); isVariable(r); {
+	// 1.先读取后续的字符，直到读到非(字母、数字、下划线)
+	for r := l.peek(); isVariable(r) || unicode.IsDigit(r); {
 		l.next()
 		r = l.peek()
 	}
 	// 2.判断是否为keyword
-	v := l.str[l.start:l.pos]
+	v := strings.ToLower(l.str[l.start:l.pos])
 	if ok := l.keyword[v]; ok {
 		return lexKeyWord
 	}
@@ -222,12 +229,8 @@ func lexVariable(l *lexer) stateFuc {
 }
 
 func lexKeyWord(l *lexer) stateFuc {
-	v := l.str[l.start:l.pos]
-	if ok := l.keyword[v]; ok {
-		l.token(KeyWord)
-		return lexBegin
-	}
-	return nil
+	l.token(KeyWord)
+	return lexBegin
 }
 
 func lexIdentifier(l *lexer) stateFuc {
@@ -237,7 +240,7 @@ func lexIdentifier(l *lexer) stateFuc {
 
 func lexLiteral(l *lexer) stateFuc {
 	// 读取字符串
-	for r := l.peek(); unicode.IsLetter(r);{
+	for r := l.peek(); unicode.IsLetter(r); {
 		l.next()
 		r = l.peek()
 	}

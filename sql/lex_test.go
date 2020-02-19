@@ -8,10 +8,10 @@ import (
 )
 
 func Test_lexer(t *testing.T) {
-	sql1 := "insert into test(name, age, sex, wight) value ('何', 29, 'boy', 17.21);"
-	sql2 := "find test"
-	sql3 := "update test set name = '吴';"
-	sql4 := "delete from test where age >= 20;"
+	sql1 := "insert age 29;"
+	sql2 := "find age"
+	sql3 := "update name '吴';"
+	sql4 := "delete age;"
 	fmt.Println("parse sql :", sql1)
 	lexer := NewLex(sql1)
 	printTokens(lexer.tokens)

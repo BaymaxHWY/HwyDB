@@ -227,6 +227,9 @@ func (bn *BNode) findLeafBNode(key Key) (*BNode, int) {
 		}
 		bn = bn.next
 	}
+	if bn == nil {
+		return bn, -1
+	}
 	return bn, len(bn.nodes)-1 // 如果inRecord比已经存在的关键字都大
 }
 // 插入元素
