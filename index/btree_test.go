@@ -50,13 +50,13 @@ func TestTree_Update(t *testing.T) {
 		key  OFFTYPE
 		val  string
 	} {
-		{name:"update 1", key: 1, val: "1 +"},
-		{name:"update 2", key: 2, val: "2 +"},
-		{name:"update 3", key: 3, val: "3 +"},
-		{name:"update 4", key: 4, val: "4 +"},
-		{name:"update 5", key: 5, val: "5 +"},
-		{name:"update 11", key: 11, val: "11"},
-		{name:"update 13", key: 13, val: "13"},
+		{name:"update 1", key: 1, val: "1 + 1 = 2"},
+		{name:"update 2", key: 2, val: "2 + 2 = 3"},
+		{name:"update 3", key: 3, val: "3 + 3 = 6"},
+		{name:"update 4", key: 4, val: "4 + 4 = 8"},
+		{name:"update 5", key: 5, val: "5 + 5 = 10"},
+		{name:"update 11", key: 11, val: "11 + 11 = 22"},
+		//{name:"update 13", key: 13, val: "13"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -13,14 +13,14 @@ import (
 // 重写b+tree，实现磁盘存储功能（持久化）
 // TODO:
 // 	1. 没有进行缓存优化的，没有设置文件大小限制
-//  2. 优化insert，如果当前节点超过限制，则匀一个给兄弟节点（如果兄弟节点有空余的话）,
-//	 3. val需要设置最大长度（在输入的时候，或者程序默认最大长度，不然如果更新的val长度比原来的大就会覆盖一部分）
+//  2. 优化insert，如果当前节点超过限制，则匀一个给兄弟节点（如果兄弟节点有空余的话）
 
 // 从文件中读取的流程：1.使用ReadAt方法从给定的offset处开始读取固定长度的buf；2.使用binary库将读取到的buf进行反序列化
 // 把数据写入文件的流程：1.先使用binary库将struct进行序列化写入到buf；2.再使用WriteAt方法在给定offset写入固定长度的buf
 const (
 	M = 4 // B+tree's order
 	INVAILD_OFFSET = 0xdeadbeef
+	MAX_VAL_LEN uint8 = 250
 )
 
 var (
@@ -835,10 +835,10 @@ func (t *Tree) saveValue(val string) (OFFTYPE, error) {
 	}
 	ret = fstat.Size()
 	// 获取val的字节数并序列化
-	valBuf := []byte(val)
-	vlen := uint8(len(valBuf))
+	valBuf := make([]byte, MAX_VAL_LEN)
+	copy(valBuf, []byte(val))
 	bs := bytes.NewBuffer(make([]byte, 0))
-	if err = binary.Write(bs, binary.LittleEndian, vlen); err != nil {
+	if err = binary.Write(bs, binary.LittleEndian, MAX_VAL_LEN); err != nil {
 		return INVAILD_OFFSET, err
 	}
 	// 把val序列化
